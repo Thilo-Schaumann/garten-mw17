@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pflegekalender</title>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --stein: #EDEDE4; --karte: #F8F7F2; --hecke: #263528; --heckeSoft: #4A5A46;
+    --pastellgruen: #B7D3A0; --moos: #6B7F4F; --lehm: #8B5A3C; --taube: #5C7280;
+    --linie: #DAD8CC; --frost: #6E9BC7; --wasser: #4E8FA6; --gefahr: #B5562E; --gelb: #C99A3A;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--stein); font-family: 'IBM Plex Sans', sans-serif; color: var(--heckeSoft); }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 2.5rem 1.25rem 3rem; }
+
+  .top-nav { display: flex; justify-content: flex-end; margin-bottom: 1rem; }
+  .top-nav a { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--moos); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
+  .top-nav a:hover { color: var(--hecke); }
+  .top-nav svg { width: 13px; height: 13px; }
+
+  header p.eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--moos); margin: 0; }
+  header h1 { font-family: 'Fraunces', serif; font-size: 34px; color: var(--hecke); margin: 4px 0 1.5rem; font-weight: 500; }
+
+  .karte-box { background: var(--karte); border: 1px solid var(--linie); border-radius: 10px; padding: 1rem 1.1rem; margin-bottom: 1.5rem; font-size: 13px; }
+
+  #wetter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; }
+  #wetter-row .item { display: flex; align-items: center; gap: 6px; }
+  #wetter-row svg { width: 15px; height: 15px; }
+  .ampel-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+  .auto-legende { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; font-size: 12px; }
+  .auto-legende .item { display: flex; align-items: center; gap: 6px; }
+  .auto-legende svg { width: 14px; height: 14px; }
+  .auto-legende .hinweis { font-style: italic; color: var(--taube); }
+
+  p.label-mono { font-family: 'IBM Plex Mono', monospace; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--heckeSoft); margin: 0 0 12px; }
+  .ribbon { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 4px; overflow-x: auto; padding-bottom: 2px; -webkit-overflow-scrolling: touch; }
+  .ribbon button { flex: 1 1 0; min-width: 34px; display: flex; flex-direction: column; align-items: center; gap: 8px; background: none; border: none; cursor: pointer; padding: 0; }
+  .ribbon .leaf { width: 100%; border-radius: 0% 60% 0% 60%; background: var(--pastellgruen); transition: all 0.15s; }
+  .ribbon .m-label { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--heckeSoft); }
+  .ribbon .m-label.active { color: var(--hecke); font-weight: 600; }
+
+  .monate-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 1.25rem 0 1.5rem; }
+  @media (min-width: 500px) {
+    .monate-grid { grid-template-columns: repeat(4, 1fr); }
+  }
+  .monat-kachel { border-radius: 10px; padding: 10px; cursor: pointer; border: 2px solid var(--linie); background: var(--karte); }
+  .monat-kachel.active { border-color: var(--pastellgruen); }
+  .monat-kachel .m-name { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; color: var(--moos); margin: 0 0 4px; }
+  .monat-kachel.active .m-name { color: var(--hecke); }
+  .monat-kachel ul { list-style: none; margin: 0; padding: 0; }
+  .monat-kachel li { font-size: 11px; line-height: 1.5; color: var(--heckeSoft); display: flex; gap: 4px; }
+  .monat-kachel.active li { color: var(--hecke); }
+  .monat-kachel li .punkt { color: var(--moos); }
+
+  hr.trenner { border: none; border-top: 1px solid var(--linie); margin: 1.5rem 0; }
+
+  .filter-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1rem; align-items: center; }
+  .filter-btn { font-size: 12px; padding: 5px 12px; border-radius: 999px; background: var(--karte); color: var(--heckeSoft); border: 1px solid var(--linie); cursor: pointer; }
+  .filter-btn.active { background: var(--hecke); color: var(--stein); border-color: var(--hecke); }
+  .reset-btn { font-size: 12px; color: var(--lehm); background: none; border: none; cursor: pointer; padding: 5px 4px; }
+
+  #detail-title { font-family: 'Fraunces', serif; font-size: 18px; color: var(--hecke); margin: 0 0 12px; font-weight: 500; }
+  .aufgaben-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+  .aufgabe-card { background: var(--karte); border: 1px solid var(--linie); border-radius: 10px; padding: 0.85rem 1rem; }
+  .aufgabe-card .kopf { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .aufgabe-card h4 { font-family: 'Fraunces', serif; font-size: 15px; color: var(--hecke); margin: 0; font-weight: 500; }
+  .aufgabe-card .chip { font-size: 10px; padding: 2px 8px; border-radius: 999px; background: var(--stein); color: var(--heckeSoft); white-space: nowrap; }
+  .aufgabe-card .task-row { display: flex; align-items: center; gap: 7px; font-size: 13px; margin-top: 6px; color: var(--heckeSoft); }
+  .aufgabe-card .task-row svg { width: 13px; height: 13px; color: var(--moos); flex-shrink: 0; }
+  .aufgabe-card .badges { display: flex; gap: 7px; margin-top: 8px; }
+  .aufgabe-card .badges svg { width: 13px; height: 13px; }
+  .b-frost { color: var(--frost); } .b-wasser { color: var(--wasser); } .b-giftig { color: var(--gefahr); }
+  .leer-hinweis { font-size: 13px; color: var(--taube); font-style: italic; }
+
+  footer.hinweis { margin-top: 2rem; font-size: 12px; color: var(--taube); font-style: italic; }
+  footer.hinweis a { color: var(--lehm); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="top-nav">
+    <a href="pflanzendatenbank.html">Pflanzendatenbank ansehen <i data-lucide="arrow-right"></i></a>
+  </div>
+
+  <header>
+    <p class="eyebrow">Pflegekalender</p>
+    <h1>Gartenjahr MW17</h1>
+  </header>
+
+  <div class="karte-box">
+    <div id="wetter-row"><span class="leer-hinweis">Lade Wetterdaten …</span></div>
+  </div>
+
+  <div class="karte-box auto-legende">
+    <span class="item"><i data-lucide="bot"></i> Rasen: Mähroboter</span>
+    <span class="item"><i data-lucide="droplets"></i> Beete: Tröpfchenbewässerung</span>
+    <span class="hinweis">→ automatisiert, kein Kalendereintrag</span>
+  </div>
+
+  <p class="label-mono">Aufgabendichte im Jahresverlauf</p>
+  <div class="ribbon" id="ribbon"></div>
+
+  <div class="monate-grid" id="monate-grid"></div>
+
+  <hr class="trenner">
+
+  <div class="filter-row" id="kategorie-filter"></div>
+
+  <h3 id="detail-title"></h3>
+  <div class="aufgaben-grid" id="aufgaben-grid"><p class="leer-hinweis">Lade Pflanzendaten …</p></div>
+
+  <footer class="hinweis" id="footer-hinweis"></footer>
+
+</div>
+
+<script>
+  // ---------- Wetter ----------
+  const LAT = 51.305, LON = 9.415;
+  const wetterUrl = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
+    `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,sunshine_duration` +
+    `&past_days=21&forecast_days=3&timezone=Europe%2FBerlin`;
+
+  fetch(wetterUrl)
+    .then(r => { if (!r.ok) throw new Error("API-Fehler " + r.status); return r.json(); })
+    .then(renderWetter)
+    .catch(err => {
+      document.getElementById("wetter-row").innerHTML = `<span class="leer-hinweis">Wetterdaten nicht verfügbar (${err.message})</span>`;
+    });
+
+  function renderWetter(data) {
+    const d = data.daily;
+    const todayIdx = 21;
+    const todayMax = round(d.temperature_2m_max[todayIdx]);
+    const todayMin = round(d.temperature_2m_min[todayIdx]);
+    const rain21 = round(sum(d.precipitation_sum.slice(0, 21)), 1);
+    const sun14 = round(sum(d.sunshine_duration.slice(7, 21)) / 3600, 1);
+
+    let farbe = "var(--moos)", label = "Ausreichend Regen";
+    if (rain21 < 20) { farbe = "var(--gefahr)"; label = "Trocken – zusätzlich gießen"; }
+    else if (rain21 < 40) { farbe = "var(--gelb)"; label = "Beobachten"; }
+
+    document.getElementById("wetter-row").innerHTML = `
+      <span class="item"><i data-lucide="thermometer"></i> ${todayMin}° / ${todayMax}° C</span>
+      <span class="item"><i data-lucide="sun"></i> ${sun14} h Sonne (14 Tage)</span>
+      <span class="item"><i data-lucide="cloud-rain"></i> ${rain21} mm Regen (21 Tage)</span>
+      <span class="item" style="margin-left:auto;"><span class="ampel-dot" style="background:${farbe}"></span> <span style="color:${farbe}; font-weight:600;">${label}</span></span>
+    `;
+    lucide.createIcons();
+  }
+  function sum(arr) { return arr.reduce((a, b) => a + (b || 0), 0); }
+  function round(n, digits = 0) { const f = Math.pow(10, digits); return Math.round(n * f) / f; }
+
+  // ---------- Pflanzendaten (zur Laufzeit geladen) ----------
+  let pflanzen = [];
+  let byName = {};
+  let tasksFlat = [];
+  let monthCounts = new Array(12).fill(0);
+  let maxCount = 1;
+  let alleKategorien = [];
+
+  const MONTHS = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+  const MONTH_KEYWORDS = [
+    ["Baumschnitt", "Frostschutz", "Planung"],
+    ["Rückschnitt", "Baumschnitt", "Frostschutz"],
+    ["Rückschnitt", "Mulchen", "Düngen"],
+    ["Pflanzung", "Düngen", "Unkraut jäten"],
+    ["Spitzenschnitt", "Mulchen nachlegen", "Pflegeschnitt"],
+    ["Formschnitt", "Pflegeschnitt", "Ernte"],
+    ["Pflegeschnitt", "Ernte", "Spitzenschnitt"],
+    ["Rückschnitt n. Blüte", "Formschnitt", "Ernte"],
+    ["Aufräumschnitt", "Pflanzung", "Nachmulchen"],
+    ["Laubarbeiten", "Pflanzung", "Frostschutz vorb."],
+    ["Frostschutz", "Winterschutz", "Baumschnitt"],
+    ["Ruhephase", "Frostschutz", "Planung"],
+  ];
+
+  // Aufgaben der Pflanzen mit vollständigen Pflegehinweisen (Monate 0-indexiert, Jan=0)
+  const monatsAufgaben = {
+    "Platanus acerifolia": [{ m: [11,0,1], t: "Rückschnitt bei Bedarf" }],
+    "Liquidambar styraciflua": [{ m: [10,11,0], t: "Rückschnitt falls nötig" }],
+    "Robinia pseudoacacia 'Umbraculifera'": [{ m: [1,2], t: "Formschnitt" }],
+    "Cornus controversa": [{ m: [11,0,1], t: "Erziehungsschnitt" }],
+    "Hydrangea macrophylla 'Masja'": [{ m: [2], t: "Verblühtes entfernen" }],
+    "Buddleja 'Peace'": [{ m: [1,2], t: "Radikalschnitt" }],
+    "Amelanchier lamarckii": [{ m: [6], t: "Ernte" }],
+    "Viburnum farreri": [{ m: [3], t: "Rückschnitt nach Blüte" }],
+    "Hibiscus syriacus 'Woodbridge'": [{ m: [1,2], t: "Rückschnitt" }],
+    "Echinacea purpurea": [{ m: [2], t: "Bodennah zurückschneiden" }],
+    "Salvia nemorosa 'Mainacht'": [{ m: [2], t: "Alte Triebe entfernen" }, { m: [5], t: "Rückschnitt nach 1. Blüte" }],
+    "Hosta sieboldiana 'Frances Williams'": [{ m: [10,2], t: "Welkes Laub entfernen" }],
+    "Lavandula angustifolia 'Hidcote Blue Strain'": [{ m: [2,3], t: "Formschnitt" }, { m: [7], t: "Rückschnitt nach Blüte" }],
+    "Hemerocallis 'Atlas'": [{ m: [9], t: "Laub zurückschneiden" }],
+    "Ligustrum vulgare 'Atrovirens'": [{ m: [9,10,11,0,1], t: "Heckenschnitt möglich" }],
+    "Rubus idaeus 'Aroma Queen'": [{ m: [1], t: "Ruten bodennah zurückschneiden" }],
+    "Vaccinium corymbosum 'Bluecrop'": [{ m: [0,1], t: "Auslichten" }],
+    "Miscanthus sinensis 'Silberfeder'": [{ m: [1,2], t: "Bodennah abschneiden" }],
+    "Fargesia murielae 'Standing Stone' (R)": [{ m: [2], t: "Kahle Halme entfernen" }],
+    "Rosmarin": [{ m: [8,9], t: "Für Winter eintopfen" }]
+  };
+
+  let selectedMonth = new Date().getMonth();
+  let selectedCats = [];
+
+  fetch('pflanzen.json')
+    .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(data => { init(data); })
+    .catch(err => {
+      document.getElementById("aufgaben-grid").innerHTML =
+        `<p class="leer-hinweis">Pflanzendaten konnten nicht geladen werden (${err.message}). Diese Seite braucht einen Webserver (funktioniert nicht per Doppelklick).</p>`;
+    });
+
+  function init(data) {
+    pflanzen = data;
+    byName = Object.fromEntries(pflanzen.map(p => [p.Name, p]));
+
+    tasksFlat = [];
+    for (const [name, eintraege] of Object.entries(monatsAufgaben)) {
+      const p = byName[name];
+      if (!p) continue;
+      eintraege.forEach(e => e.m.forEach(monat => {
+        tasksFlat.push({ monat, name, deutsch: p["Deutscher Name"], kategorie: p.Kategorie, task: e.t, p });
+      }));
+    }
+    monthCounts = new Array(12).fill(0);
+    tasksFlat.forEach(t => monthCounts[t.monat]++);
+    maxCount = Math.max(...monthCounts, 1);
+    alleKategorien = [...new Set(pflanzen.flatMap(p => p.Kategorie))].sort();
+
+    const vollstaendig = pflanzen.filter(p => p.Standort || p.Rückschnitt || p.Pflegehinweise).length;
+    document.getElementById("footer-hinweis").innerHTML =
+      `Pflegehinweise bisher für ${vollstaendig} von ${pflanzen.length} Pflanzen erfasst – der Rest folgt. <a href="pflanzendatenbank.html">Ganze Pflanzendatenbank ansehen →</a>`;
+
+    renderAll();
+  }
+
+  function toggleMonth(idx) {
+    selectedMonth = selectedMonth === idx ? null : idx;
+    renderAll();
+  }
+
+  function renderRibbon() {
+    const el = document.getElementById("ribbon");
+    el.innerHTML = MONTHS.map((m, idx) => {
+      const count = monthCounts[idx];
+      const height = 10 + (count / maxCount) * 46;
+      const active = selectedMonth === idx;
+      return `
+        <button data-idx="${idx}">
+          <span class="leaf" style="height:${height}px; opacity:${active ? 1 : count === 0 ? 0.4 : 0.85}; ${active ? "box-shadow: 0 0 0 2px var(--hecke); transform: scale(1.08);" : ""}"></span>
+          <span class="m-label${active ? " active" : ""}">${m}</span>
+        </button>`;
+    }).join("");
+    el.querySelectorAll("button").forEach(b => b.addEventListener("click", () => toggleMonth(Number(b.dataset.idx))));
+  }
+
+  function renderMonatsKacheln() {
+    const el = document.getElementById("monate-grid");
+    el.innerHTML = MONTHS.map((m, idx) => {
+      const active = selectedMonth === idx;
+      const words = MONTH_KEYWORDS[idx];
+      return `
+        <div class="monat-kachel${active ? " active" : ""}" data-idx="${idx}">
+          <p class="m-name">${m}</p>
+          <ul>${words.map(w => `<li><span class="punkt">•</span>${w}</li>`).join("")}</ul>
+        </div>`;
+    }).join("");
+    el.querySelectorAll(".monat-kachel").forEach(k => k.addEventListener("click", () => toggleMonth(Number(k.dataset.idx))));
+  }
+
+  function renderKategorieFilter() {
+    const el = document.getElementById("kategorie-filter");
+    el.innerHTML = alleKategorien.map(k =>
+      `<button class="filter-btn${selectedCats.includes(k) ? " active" : ""}" data-k="${k}">${k}</button>`
+    ).join("") + ((selectedMonth !== null || selectedCats.length > 0) ? `<button class="reset-btn" id="reset-btn">Filter zurücksetzen</button>` : "");
+
+    el.querySelectorAll(".filter-btn").forEach(b => {
+      b.addEventListener("click", () => {
+        const k = b.dataset.k;
+        selectedCats = selectedCats.includes(k) ? selectedCats.filter(c => c !== k) : [...selectedCats, k];
+        renderAll();
+      });
+    });
+    const reset = document.getElementById("reset-btn");
+    if (reset) reset.addEventListener("click", () => { selectedMonth = null; selectedCats = []; renderAll(); });
+  }
+
+  function badgeIcons(p) {
+    const b = [];
+    if (p.Frostschutz === "Ja") b.push(`<i data-lucide="snowflake" class="b-frost" title="Frostschutz"></i>`);
+    if (p.Wasserbedarf === "Ja") b.push(`<i data-lucide="droplets" class="b-wasser" title="Wasserbedarf"></i>`);
+    if (p.Giftig === "Ja") b.push(`<i data-lucide="skull" class="b-giftig" title="Giftig"></i>`);
+    return b.length ? `<div class="badges">${b.join("")}</div>` : "";
+  }
+
+  function renderDetailListe() {
+    const titel = document.getElementById("detail-title");
+    titel.textContent = selectedMonth !== null ? `Aufgaben im ${MONTHS[selectedMonth]}` : "Aufgaben – alle Monate";
+
+    let liste = selectedMonth !== null ? tasksFlat.filter(t => t.monat === selectedMonth) : tasksFlat;
+    if (selectedCats.length) liste = liste.filter(t => t.kategorie.some(k => selectedCats.includes(k)));
+
+    const grid = document.getElementById("aufgaben-grid");
+    if (!liste.length) {
+      grid.innerHTML = `<p class="leer-hinweis">Keine erfassten Aufgaben für diese Auswahl.</p>`;
+      return;
+    }
+    grid.innerHTML = liste.map(t => `
+      <div class="aufgabe-card">
+        <div class="kopf">
+          <h4>${t.deutsch}</h4>
+          <span class="chip">${t.kategorie[0]}</span>
+        </div>
+        <div class="task-row"><i data-lucide="scissors"></i> ${selectedMonth === null ? MONTHS[t.monat] + " – " : ""}${t.task}</div>
+        ${badgeIcons(t.p)}
+      </div>
+    `).join("");
+    lucide.createIcons();
+  }
+
+  function renderAll() {
+    renderRibbon();
+    renderMonatsKacheln();
+    renderKategorieFilter();
+    renderDetailListe();
+    lucide.createIcons();
+  }
+</script>
+
+</body>
+</html>

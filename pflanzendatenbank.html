@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pflanzendatenbank</title>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --stein: #EDEDE4; --karte: #F8F7F2; --hecke: #263528; --heckeSoft: #4A5A46;
+    --pastellgruen: #B7D3A0; --moos: #6B7F4F; --lehm: #8B5A3C; --taube: #5C7280;
+    --linie: #DAD8CC; --frost: #6E9BC7; --wasser: #4E8FA6; --gefahr: #B5562E;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--stein); font-family: 'IBM Plex Sans', sans-serif; color: var(--heckeSoft); }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 2.5rem 1.25rem 3rem; }
+
+  .top-nav { margin-bottom: 1.5rem; }
+  .top-nav a { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--moos); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
+  .top-nav a:hover { color: var(--hecke); }
+
+  header p.eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--moos); margin: 0; }
+  header h1 { font-family: 'Fraunces', serif; font-size: 34px; color: var(--hecke); margin: 4px 0 2px; font-weight: 500; }
+  header p.sub { font-size: 14px; margin: 0 0 1.5rem; }
+
+  .filter-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 0.6rem; }
+  .filter-row.badges-row { margin-bottom: 1.25rem; }
+  .filter-btn { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; padding: 6px 13px; border-radius: 999px; border: 1px solid var(--linie); background: var(--karte); color: var(--heckeSoft); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+  .filter-btn.active { background: var(--hecke); color: var(--stein); border-color: var(--hecke); }
+  .filter-btn svg { width: 12px; height: 12px; }
+
+  .count { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--taube); margin-bottom: 1rem; }
+
+  .pflanzen-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .pflanze-card { background: var(--karte); border: 1px solid var(--linie); border-radius: 12px; padding: 1rem; }
+  .pflanze-card .kopf { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .pflanze-card h3 { font-family: 'Fraunces', serif; font-weight: 500; font-size: 17px; color: var(--hecke); margin: 0; }
+  .pflanze-card .lat { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--taube); font-style: italic; margin: 3px 0 8px; }
+  .pflanze-card .menge { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--taube); white-space: nowrap; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+  .chip { font-size: 11px; padding: 3px 10px; border-radius: 999px; background: var(--stein); color: var(--heckeSoft); }
+  .badges { display: flex; gap: 8px; margin-bottom: 8px; }
+  .badges span { display: inline-flex; align-items: center; }
+  .badges svg { width: 14px; height: 14px; }
+  .b-frost svg { color: var(--frost); }
+  .b-wasser svg { color: var(--wasser); }
+  .b-essbar svg { color: var(--moos); }
+  .b-giftig svg { color: var(--gefahr); }
+  .pflege-text { font-size: 12px; line-height: 1.55; border-top: 1px solid var(--linie); padding-top: 8px; margin-top: 4px; }
+  .pflege-text b { color: var(--hecke); font-weight: 600; }
+  .pflege-fehlt { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--taube); border-top: 1px solid var(--linie); padding-top: 8px; margin-top: 4px; }
+
+  .bild-platzhalter { width: 100%; aspect-ratio: 4/3; background: var(--stein); border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; color: var(--taube); }
+  .bild-platzhalter svg { width: 22px; height: 22px; opacity: 0.5; }
+  .leer-hinweis { font-size: 13px; color: var(--taube); font-style: italic; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="top-nav">
+    <a href="index.html"><i data-lucide="arrow-left" style="width:13px;height:13px;"></i> Zurück zum Pflegekalender</a>
+  </div>
+
+  <header>
+    <p class="eyebrow">Vollständige Übersicht</p>
+    <h1>Pflanzendatenbank</h1>
+    <p class="sub">Alle Pflanzen aus den Lieferscheinen – MW17</p>
+  </header>
+
+  <div class="filter-row" id="filter-row"></div>
+  <div class="filter-row badges-row" id="badges-filter-row"></div>
+  <p class="count" id="count"></p>
+  <div class="pflanzen-grid" id="pflanzen-grid"><p class="leer-hinweis">Lade Pflanzendaten …</p></div>
+</div>
+
+<script>
+  let pflanzen = [];
+  let alleKategorien = [];
+  let aktiveKategorie = null;
+  let aktiveBadges = [];
+
+  const BADGE_DEFS = [
+    { key: "Frostschutz", label: "Frostschutz", icon: "snowflake" },
+    { key: "Wasserbedarf", label: "Wasserbedarf", icon: "droplets" },
+    { key: "Essbar", label: "Essbar", icon: "utensils" },
+    { key: "Giftig", label: "Giftig", icon: "skull" },
+  ];
+
+  function icon(name) { return `<i data-lucide="${name}"></i>`; }
+
+  fetch('pflanzen.json')
+    .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(data => {
+      pflanzen = data;
+      alleKategorien = [...new Set(pflanzen.flatMap(p => p.Kategorie))].sort();
+      renderFilter();
+      renderPflanzen();
+    })
+    .catch(err => {
+      document.getElementById("pflanzen-grid").innerHTML =
+        `<p class="leer-hinweis">Pflanzendaten konnten nicht geladen werden (${err.message}). Diese Seite braucht einen Webserver (funktioniert nicht per Doppelklick).</p>`;
+    });
+
+  function renderFilter() {
+    const row = document.getElementById("filter-row");
+    const btn = (label, val) => `<button class="filter-btn${aktiveKategorie === val ? " active" : ""}" data-val="${val ?? ""}">${label}</button>`;
+    row.innerHTML = btn("Alle", null) + alleKategorien.map(k => btn(k, k)).join("");
+    row.querySelectorAll(".filter-btn").forEach(b => {
+      b.addEventListener("click", () => {
+        aktiveKategorie = b.dataset.val || null;
+        renderFilter();
+        renderPflanzen();
+      });
+    });
+
+    const badgeRow = document.getElementById("badges-filter-row");
+    badgeRow.innerHTML = BADGE_DEFS.map(bd =>
+      `<button class="filter-btn${aktiveBadges.includes(bd.key) ? " active" : ""}" data-badge="${bd.key}">${icon(bd.icon)}${bd.label}</button>`
+    ).join("");
+    badgeRow.querySelectorAll(".filter-btn").forEach(b => {
+      b.addEventListener("click", () => {
+        const k = b.dataset.badge;
+        aktiveBadges = aktiveBadges.includes(k) ? aktiveBadges.filter(x => x !== k) : [...aktiveBadges, k];
+        renderFilter();
+        renderPflanzen();
+      });
+    });
+    lucide.createIcons();
+  }
+
+  function badgeRowHtml(p) {
+    const b = [];
+    if (p.Frostschutz === "Ja") b.push(`<span class="b-frost" title="Frostschutz nötig">${icon("snowflake")}</span>`);
+    if (p.Wasserbedarf === "Ja") b.push(`<span class="b-wasser" title="Erhöhter Wasserbedarf">${icon("droplets")}</span>`);
+    if (p.Essbar === "Ja") b.push(`<span class="b-essbar" title="Essbar">${icon("utensils")}</span>`);
+    if (p.Giftig === "Ja") b.push(`<span class="b-giftig" title="Giftig">${icon("skull")}</span>`);
+    return b.length ? `<div class="badges">${b.join("")}</div>` : "";
+  }
+
+  function pflegeBlock(p) {
+    if (!p.Standort && !p.Rückschnitt && !p.Pflegehinweise) {
+      return `<div class="pflege-fehlt">Pflegehinweise folgen</div>`;
+    }
+    const zeilen = [];
+    if (p.Standort) zeilen.push(`<b>Standort:</b> ${p.Standort}`);
+    if (p.Rückschnitt) zeilen.push(`<b>Rückschnitt:</b> ${p.Rückschnitt}`);
+    if (p.Pflegehinweise) zeilen.push(`<b>Hinweise:</b> ${p.Pflegehinweise}`);
+    return `<div class="pflege-text">${zeilen.join("<br>")}</div>`;
+  }
+
+  function renderPflanzen() {
+    let liste = aktiveKategorie ? pflanzen.filter(p => p.Kategorie.includes(aktiveKategorie)) : pflanzen;
+    if (aktiveBadges.length) liste = liste.filter(p => aktiveBadges.every(k => p[k] === "Ja"));
+    document.getElementById("count").textContent = `${liste.length} von ${pflanzen.length} Pflanzen`;
+    const grid = document.getElementById("pflanzen-grid");
+    grid.innerHTML = liste.map(p => `
+      <div class="pflanze-card">
+        <div class="bild-platzhalter">${icon("image")}</div>
+        <div class="kopf">
+          <div>
+            <h3>${p["Deutscher Name"]}</h3>
+            <p class="lat">${p.Name}</p>
+          </div>
+          <span class="menge">${p.Menge}x</span>
+        </div>
+        <div class="chips">${p.Kategorie.map(k => `<span class="chip">${k}</span>`).join("")}</div>
+        ${badgeRowHtml(p)}
+        ${pflegeBlock(p)}
+      </div>
+    `).join("");
+    lucide.createIcons();
+  }
+</script>
+
+</body>
+</html>
