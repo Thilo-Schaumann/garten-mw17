@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pflanzendatenbank</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MW17">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
@@ -55,6 +60,16 @@
   .bild-platzhalter { width: 100%; aspect-ratio: 4/3; background: var(--stein); border-radius: 6px; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; color: var(--taube); }
   .bild-platzhalter svg { width: 18px; height: 18px; opacity: 0.5; }
   .leer-hinweis { font-size: 13px; color: var(--taube); font-style: italic; }
+
+  .bild-galerie { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 6px; }
+  .bild-slot { position: relative; aspect-ratio: 4/3; border-radius: 6px; overflow: hidden; background: var(--stein); }
+  .bild-slot img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: zoom-in; }
+  .bild-slot .bild-platzhalter { position: absolute; inset: 0; margin: 0; border-radius: 0; }
+  .bild-label { position: absolute; left: 4px; bottom: 4px; font-family: 'IBM Plex Mono', monospace; font-size: 8.5px; letter-spacing: 0.04em; text-transform: uppercase; color: #fff; background: rgba(38,53,40,0.72); padding: 2px 5px; border-radius: 999px; }
+
+  .lightbox-overlay { position: fixed; inset: 0; background: rgba(20,24,18,0.9); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 24px; cursor: zoom-out; }
+  .lightbox-overlay.aktiv { display: flex; }
+  .lightbox-overlay img { max-width: 92vw; max-height: 88vh; border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
 </style>
 </head>
 <body>
@@ -74,6 +89,10 @@
   <div class="filter-row badges-row" id="badges-filter-row"></div>
   <p class="count" id="count"></p>
   <div class="pflanzen-grid" id="pflanzen-grid"><p class="leer-hinweis">Lade Pflanzendaten …</p></div>
+</div>
+
+<div class="lightbox-overlay" id="lightbox">
+  <img id="lightbox-img" src="" alt="">
 </div>
 
 <script>
@@ -140,6 +159,29 @@
     return b.length ? `<div class="badges">${b.join("")}</div>` : "";
   }
 
+  function bildSlot(url, label) {
+    if (url) {
+      return `<div class="bild-slot"><img src="${url}" alt="${label}" loading="lazy" class="bild-img"><span class="bild-label">${label}</span></div>`;
+    }
+    return `<div class="bild-slot"><div class="bild-platzhalter">${icon("image")}</div><span class="bild-label">${label}</span></div>`;
+  }
+
+  function bildGalerie(p) {
+    return `<div class="bild-galerie">${bildSlot(p.Bild_Habitus, "Habitus")}${bildSlot(p.Bild_Blatt, "Blatt")}</div>`;
+  }
+
+  function openLightbox(url, alt) {
+    const img = document.getElementById("lightbox-img");
+    img.src = url;
+    img.alt = alt;
+    document.getElementById("lightbox").classList.add("aktiv");
+  }
+  function closeLightbox() {
+    document.getElementById("lightbox").classList.remove("aktiv");
+    document.getElementById("lightbox-img").src = "";
+  }
+  document.getElementById("lightbox").addEventListener("click", closeLightbox);
+
   function pflegeBlock(p) {
     if (!p.Standort && !p.Rückschnitt && !p.Pflegehinweise) {
       return `<div class="pflege-fehlt">Pflegehinweise folgen</div>`;
@@ -158,7 +200,7 @@
     const grid = document.getElementById("pflanzen-grid");
     grid.innerHTML = liste.map(p => `
       <div class="pflanze-card">
-        <div class="bild-platzhalter">${icon("image")}</div>
+        ${bildGalerie(p)}
         <div class="kopf">
           <div>
             <h3>${p["Deutscher Name"]}</h3>
@@ -171,6 +213,9 @@
         ${pflegeBlock(p)}
       </div>
     `).join("");
+    grid.querySelectorAll(".bild-img").forEach(img => {
+      img.addEventListener("click", () => openLightbox(img.src, img.alt));
+    });
     lucide.createIcons();
   }
 </script>
