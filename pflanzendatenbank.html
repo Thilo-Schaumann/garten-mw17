@@ -30,6 +30,12 @@
   header h1 { font-family: 'Fraunces', serif; font-size: 34px; color: var(--hecke); margin: 4px 0 2px; font-weight: 500; }
   header p.sub { font-size: 14px; margin: 0 0 1.5rem; }
 
+  .search-wrap { position: relative; margin-bottom: 1rem; }
+  .search-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--taube); pointer-events: none; }
+  .search-input { width: 100%; font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; padding: 10px 12px 10px 34px; border-radius: 999px; border: 1px solid var(--linie); background: var(--karte); color: var(--heckeSoft); }
+  .search-input:focus { outline: none; border-color: var(--moos); }
+  .search-input::placeholder { color: var(--taube); }
+
   .filter-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 0.6rem; }
   .filter-row.badges-row { margin-bottom: 1.25rem; }
   .filter-btn { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; padding: 6px 13px; border-radius: 999px; border: 1px solid var(--linie); background: var(--karte); color: var(--heckeSoft); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
@@ -85,6 +91,11 @@
     <p class="sub">Alle Pflanzen aus den Lieferscheinen – MW17</p>
   </header>
 
+  <div class="search-wrap">
+    <i data-lucide="search"></i>
+    <input type="search" id="suche" class="search-input" placeholder="Pflanze suchen (deutscher oder lateinischer Name) …">
+  </div>
+
   <div class="filter-row" id="filter-row"></div>
   <div class="filter-row badges-row" id="badges-filter-row"></div>
   <p class="count" id="count"></p>
@@ -100,6 +111,11 @@
   let alleKategorien = [];
   let aktiveKategorie = null;
   let aktiveBadges = [];
+  let suchbegriff = "";
+
+  function normalisiert(s) {
+    return (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  }
 
   const BADGE_DEFS = [
     { key: "Frostschutz", label: "Frostschutz", icon: "snowflake" },
@@ -117,6 +133,11 @@
       alleKategorien = [...new Set(pflanzen.flatMap(p => p.Kategorie))].sort();
       renderFilter();
       renderPflanzen();
+
+      document.getElementById("suche").addEventListener("input", e => {
+        suchbegriff = normalisiert(e.target.value.trim());
+        renderPflanzen();
+      });
     })
     .catch(err => {
       document.getElementById("pflanzen-grid").innerHTML =
@@ -196,8 +217,18 @@
   function renderPflanzen() {
     let liste = aktiveKategorie ? pflanzen.filter(p => p.Kategorie.includes(aktiveKategorie)) : pflanzen;
     if (aktiveBadges.length) liste = liste.filter(p => aktiveBadges.every(k => p[k] === "Ja"));
+    if (suchbegriff) {
+      liste = liste.filter(p =>
+        normalisiert(p["Deutscher Name"]).includes(suchbegriff) ||
+        normalisiert(p.Name).includes(suchbegriff)
+      );
+    }
     document.getElementById("count").textContent = `${liste.length} von ${pflanzen.length} Pflanzen`;
     const grid = document.getElementById("pflanzen-grid");
+    if (!liste.length) {
+      grid.innerHTML = `<p class="leer-hinweis">Keine Pflanze gefunden.</p>`;
+      return;
+    }
     grid.innerHTML = liste.map(p => `
       <div class="pflanze-card">
         ${bildGalerie(p)}
