@@ -68,6 +68,7 @@
   .leer-hinweis { font-size: 13px; color: var(--taube); font-style: italic; }
 
   .bild-galerie { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 6px; }
+  .bild-galerie.drei { grid-template-columns: 1fr 1fr 1fr; }
   .bild-slot { position: relative; aspect-ratio: 4/3; border-radius: 6px; overflow: hidden; background: var(--stein); }
   .bild-slot img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: zoom-in; }
   .bild-slot .bild-platzhalter { position: absolute; inset: 0; margin: 0; border-radius: 0; }
@@ -188,7 +189,10 @@
   }
 
   function bildGalerie(p) {
-    return `<div class="bild-galerie">${bildSlot(p.Bild_Habitus, "Habitus")}${bildSlot(p.Bild_Blatt, "Blatt")}</div>`;
+    const essbar = p.Essbar === "Ja";
+    const klasse = essbar ? "bild-galerie drei" : "bild-galerie";
+    const frucht = essbar ? bildSlot(p.Bild_Frucht, "Frucht") : "";
+    return `<div class="${klasse}">${bildSlot(p.Bild_Habitus, "Habitus")}${bildSlot(p.Bild_Blatt, "Blatt")}${frucht}</div>`;
   }
 
   function openLightbox(url, alt) {
