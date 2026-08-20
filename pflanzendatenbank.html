@@ -32,9 +32,13 @@
 
   .search-wrap { position: relative; margin-bottom: 1rem; }
   .search-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--taube); pointer-events: none; }
-  .search-input { width: 100%; font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; padding: 10px 12px 10px 34px; border-radius: 999px; border: 1px solid var(--linie); background: var(--karte); color: var(--heckeSoft); }
+  .search-input { width: 100%; font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; padding: 10px 34px 10px 34px; border-radius: 999px; border: 1px solid var(--linie); background: var(--karte); color: var(--heckeSoft); }
   .search-input:focus { outline: none; border-color: var(--moos); }
   .search-input::placeholder { color: var(--taube); }
+  .search-input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+  .search-clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; border: none; border-radius: 50%; background: var(--linie); color: var(--heckeSoft); font-size: 14px; line-height: 1; cursor: pointer; display: none; align-items: center; justify-content: center; padding: 0; }
+  .search-clear:hover { background: var(--moos); color: var(--karte); }
+  .search-wrap.hat-text .search-clear { display: flex; }
 
   .filter-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 0.6rem; }
   .filter-row.badges-row { margin-bottom: 1.25rem; }
@@ -92,9 +96,10 @@
     <p class="sub">Alle Pflanzen aus den Lieferscheinen – MW17</p>
   </header>
 
-  <div class="search-wrap">
+  <div class="search-wrap" id="search-wrap">
     <i data-lucide="search"></i>
     <input type="search" id="suche" class="search-input" placeholder="Pflanze suchen (deutscher oder lateinischer Name) …">
+    <button type="button" class="search-clear" id="suche-clear" aria-label="Suche löschen">✕</button>
   </div>
 
   <div class="filter-row" id="filter-row"></div>
@@ -135,9 +140,22 @@
       renderFilter();
       renderPflanzen();
 
-      document.getElementById("suche").addEventListener("input", e => {
+      const sucheInput = document.getElementById("suche");
+      const sucheWrap = document.getElementById("search-wrap");
+      const sucheClear = document.getElementById("suche-clear");
+
+      sucheInput.addEventListener("input", e => {
         suchbegriff = normalisiert(e.target.value.trim());
+        sucheWrap.classList.toggle("hat-text", e.target.value.length > 0);
         renderPflanzen();
+      });
+
+      sucheClear.addEventListener("click", () => {
+        sucheInput.value = "";
+        suchbegriff = "";
+        sucheWrap.classList.remove("hat-text");
+        renderPflanzen();
+        sucheInput.focus();
       });
     })
     .catch(err => {
