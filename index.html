@@ -231,10 +231,12 @@
     pflanzen = data;
     byName = Object.fromEntries(pflanzen.map(p => [p.Name, p]));
 
+    const imGarten = pflanzen.filter(p => p.Status !== "Ideenspeicher");
+
     tasksFlat = [];
     for (const [name, eintraege] of Object.entries(monatsAufgaben)) {
       const p = byName[name];
-      if (!p) continue;
+      if (!p || p.Status === "Ideenspeicher") continue;
       eintraege.forEach(e => e.m.forEach(monat => {
         tasksFlat.push({ monat, name, deutsch: p["Deutscher Name"], kategorie: p.Kategorie, task: e.t, p });
       }));
@@ -242,11 +244,11 @@
     monthCounts = new Array(12).fill(0);
     tasksFlat.forEach(t => monthCounts[t.monat]++);
     maxCount = Math.max(...monthCounts, 1);
-    alleKategorien = [...new Set(pflanzen.flatMap(p => p.Kategorie))].sort();
+    alleKategorien = [...new Set(imGarten.flatMap(p => p.Kategorie))].sort();
 
-    const vollstaendig = pflanzen.filter(p => p.Standort || p.Rückschnitt || p.Pflegehinweise).length;
+    const vollstaendig = imGarten.filter(p => p.Standort || p.Rückschnitt || p.Pflegehinweise).length;
     document.getElementById("footer-hinweis").innerHTML =
-      `Pflegehinweise bisher für ${vollstaendig} von ${pflanzen.length} Pflanzen erfasst – der Rest folgt. <a href="pflanzendatenbank.html">Ganze Pflanzendatenbank ansehen →</a>`;
+      `Pflegehinweise bisher für ${vollstaendig} von ${imGarten.length} Pflanzen erfasst – der Rest folgt. <a href="pflanzendatenbank.html">Ganze Pflanzendatenbank ansehen →</a>`;
 
     renderAll();
   }
