@@ -82,6 +82,22 @@
   .b-frost { color: var(--frost); } .b-wasser { color: var(--wasser); } .b-giftig { color: var(--gefahr); }
   .leer-hinweis { font-size: 13px; color: var(--taube); font-style: italic; }
 
+  .wartung-title { font-family: 'Fraunces', serif; font-size: 18px; color: var(--hecke); margin: 0 0 12px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+  .wartung-title svg { width: 17px; height: 17px; color: var(--gelb); }
+  .wartung-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .wartung-card { background: var(--karte); border: 1px solid var(--linie); border-left: 3px solid var(--gelb); border-radius: 10px; padding: 0.85rem 1rem; }
+  .wartung-card .kopf { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .wartung-card h4 { font-family: 'Fraunces', serif; font-size: 15px; color: var(--hecke); margin: 0; font-weight: 500; }
+  .wartung-card .chip { font-size: 10px; padding: 2px 8px; border-radius: 999px; background: var(--stein); color: var(--heckeSoft); white-space: nowrap; }
+  .wartung-card .methode { font-size: 12px; line-height: 1.5; color: var(--heckeSoft); margin: 8px 0; }
+  .wartung-card .task-row { display: flex; align-items: center; gap: 7px; font-size: 12.5px; margin-top: 4px; color: var(--heckeSoft); }
+  .wartung-card .task-row svg { width: 13px; height: 13px; color: var(--gelb); flex-shrink: 0; }
+
+  .kategorie-hinweis-card { background: var(--stein); border: 1px dashed var(--linie); border-radius: 10px; padding: 0.85rem 1rem; }
+  .kategorie-hinweis-card h4 { font-family: 'Fraunces', serif; font-size: 14px; color: var(--moos); margin: 0 0 6px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+  .kategorie-hinweis-card h4 svg { width: 14px; height: 14px; }
+  .kategorie-hinweis-card p { font-size: 12px; line-height: 1.5; color: var(--heckeSoft); margin: 0; font-style: italic; }
+
   footer.hinweis { margin-top: 2rem; font-size: 12px; color: var(--taube); font-style: italic; }
   footer.hinweis a { color: var(--lehm); }
   footer.rechtshinweis { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--linie); font-size: 11.5px; color: var(--taube); font-style: normal; line-height: 1.5; }
@@ -104,6 +120,9 @@
   <div class="karte-box">
     <div id="wetter-row"><span class="leer-hinweis">Lade Wetterdaten …</span></div>
   </div>
+
+  <p class="wartung-title"><i data-lucide="sparkles"></i> Laufende Pflegeaufgaben</p>
+  <div class="wartung-grid" id="wartung-grid"></div>
 
   <div class="karte-box auto-legende">
     <span class="item"><i data-lucide="bot"></i> Rasen: Mähroboter</span>
@@ -168,6 +187,59 @@
   function sum(arr) { return arr.reduce((a, b) => a + (b || 0), 0); }
   function round(n, digits = 0) { const f = Math.pow(10, digits); return Math.round(n * f) / f; }
 
+  const MONTHS = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+
+  // ---------- Übergreifende Pflegeaufgaben (unabhängig vom Monatsfilter) ----------
+  const MAINTENANCE_TASKS = [
+    {
+      name: "Beetsteine reinigen",
+      zone: "Süd-Staudenbeet, Ost-Staudenbeet",
+      method: "Kernseifenlösung oder Natron-Paste, schonend mit Bürste; kein Essig/Salz/Biozide (Pflanzenschutz, insb. Himbeere als Naschbeet)",
+      events: [{ m: 2, t: "Reinigung Frühjahr" }, { m: 9, t: "Reinigung Herbst" }],
+    },
+    {
+      name: "Schuppensteine reinigen",
+      zone: "Schuppen (Nordseite)",
+      method: "Hochdruckreiniger oder Steinreiniger; keine Pflanzenrücksicht nötig (unbepflanzter Bereich)",
+      events: [{ m: 3, t: "Vorschlag – flexibel planbar" }],
+    },
+    {
+      name: "Nachmulchen",
+      zone: "alle Beete mit Rindenmulch",
+      method: "Rindenmulch auffrischen, ca. 5 cm Schicht",
+      events: [{ m: 8, t: "Nachmulchen Herbst" }],
+    },
+  ];
+
+  function renderWartung() {
+    const el = document.getElementById("wartung-grid");
+    el.innerHTML = MAINTENANCE_TASKS.map(w => `
+      <div class="wartung-card">
+        <div class="kopf">
+          <h4>${w.name}</h4>
+          <span class="chip">${w.zone}</span>
+        </div>
+        <p class="methode">${w.method}</p>
+        ${w.events.map(e => `<div class="task-row"><i data-lucide="brush"></i> ${MONTHS[e.m]} – ${e.t}</div>`).join("")}
+      </div>
+    `).join("");
+    lucide.createIcons();
+  }
+  renderWartung();
+
+  // ---------- Generischer Pflegehinweis pro Kategorie ----------
+  const CATEGORY_CARE_HINTS = {
+    "Baum": "Form- und Pflegeschnitte sind ganzjährig möglich, radikaler Rückschnitt oder Fällung nur Okt–Feb (§39 BNatSchG).",
+    "Strauch": "Auslichten und Formschnitte sind erlaubt, solange die Pflanze schmal gehalten wird. Radikaler Rückschnitt/Auf-Stock-setzen nur Okt–Feb (§39 BNatSchG).",
+    "Hecke": "Formschnitt ist erlaubt, solange die Hecke schmal gehalten wird. Radikaler Heckenschnitt nur Okt–Feb (§39 BNatSchG, Schutz von Brutvögeln).",
+    "Staude": "Spitzenschnitt im weichen, diesjährigen Holz ist ganzjährig möglich – nie ins alte, verholzte Holz schneiden. Radikaler Rückschnitt nur im Frühjahr (Feb/März).",
+    "Kraut": "Spitzenschnitt im weichen, diesjährigen Holz ist ganzjährig möglich – nie ins alte, verholzte Holz schneiden. Radikaler Rückschnitt nur im Frühjahr (Feb/März).",
+    "Bambus": "Kahle oder braune Halme am besten im zeitigen Frühjahr vor dem Austrieb bodennah entfernen. Rhizomsperre regelmäßig kontrollieren.",
+    "Gras": "Vertrocknete Halme im Spätwinter (Feb/März) vor dem Neuaustrieb bodennah zurückschneiden.",
+    "Bodendecker": "Verträgt Rückschnitt ganzjährig gut; Auslichten oder Formschnitt am besten im Frühjahr.",
+    "Naschbeet": "Rückschnitt je nach Art unterschiedlich (Beerensträucher meist nach der Ernte oder im Winterhalbjahr) – siehe pflanzenspezifische Hinweise.",
+  };
+
   // ---------- Pflanzendaten (zur Laufzeit geladen) ----------
   let pflanzen = [];
   let byName = {};
@@ -176,7 +248,6 @@
   let maxCount = 1;
   let alleKategorien = [];
 
-  const MONTHS = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
   const MONTH_KEYWORDS = [
     ["Baumschnitt", "Frostschutz", "Planung"],
     ["Rückschnitt", "Baumschnitt", "Frostschutz"],
@@ -319,12 +390,17 @@
     let liste = selectedMonth !== null ? tasksFlat.filter(t => t.monat === selectedMonth) : tasksFlat;
     if (selectedCats.length) liste = liste.filter(t => t.kategorie.some(k => selectedCats.includes(k)));
 
+    // Generische Kategorie-Hinweise: unabhängig vom Monat, aber respektieren den Kategorie-Filter
+    const hinweisKats = alleKategorien.filter(k =>
+      CATEGORY_CARE_HINTS[k] && (!selectedCats.length || selectedCats.includes(k))
+    );
+
     const grid = document.getElementById("aufgaben-grid");
-    if (!liste.length) {
+    if (!liste.length && !hinweisKats.length) {
       grid.innerHTML = `<p class="leer-hinweis">Keine erfassten Aufgaben für diese Auswahl.</p>`;
       return;
     }
-    grid.innerHTML = liste.map(t => `
+    const aufgabenHtml = liste.map(t => `
       <div class="aufgabe-card">
         <div class="kopf">
           <h4>${t.deutsch}</h4>
@@ -334,6 +410,13 @@
         ${badgeIcons(t.p)}
       </div>
     `).join("");
+    const hinweisHtml = hinweisKats.map(k => `
+      <div class="kategorie-hinweis-card">
+        <h4><i data-lucide="info"></i> ${k} – allgemein</h4>
+        <p>${CATEGORY_CARE_HINTS[k]}</p>
+      </div>
+    `).join("");
+    grid.innerHTML = aufgabenHtml + hinweisHtml;
     lucide.createIcons();
   }
 

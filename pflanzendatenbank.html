@@ -68,6 +68,8 @@
   .pflege-text { font-size: 10.5px; line-height: 1.45; border-top: 1px solid var(--linie); padding-top: 6px; margin-top: 3px; }
   .pflege-text b { color: var(--hecke); font-weight: 600; }
   .pflege-fehlt { font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; color: var(--taube); border-top: 1px solid var(--linie); padding-top: 6px; margin-top: 3px; }
+  .kategorie-hinweis { font-size: 10px; line-height: 1.4; color: var(--moos); font-style: italic; margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--linie); display: flex; gap: 5px; align-items: flex-start; }
+  .kategorie-hinweis svg { width: 12px; height: 12px; flex-shrink: 0; margin-top: 1px; }
 
   .bild-platzhalter { width: 100%; aspect-ratio: 4/3; background: var(--stein); border-radius: 6px; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; color: var(--taube); }
   .bild-platzhalter svg { width: 18px; height: 18px; opacity: 0.5; }
@@ -133,6 +135,19 @@
     { key: "Essbar", label: "Essbar", icon: "utensils" },
     { key: "Giftig", label: "Giftig", icon: "skull" },
   ];
+
+  // Generischer Pflegehinweis pro Kategorie (siehe auch index.html)
+  const CATEGORY_CARE_HINTS = {
+    "Baum": "Form- und Pflegeschnitte sind ganzjährig möglich, radikaler Rückschnitt oder Fällung nur Okt–Feb (§39 BNatSchG).",
+    "Strauch": "Auslichten und Formschnitte sind erlaubt, solange die Pflanze schmal gehalten wird. Radikaler Rückschnitt/Auf-Stock-setzen nur Okt–Feb (§39 BNatSchG).",
+    "Hecke": "Formschnitt ist erlaubt, solange die Hecke schmal gehalten wird. Radikaler Heckenschnitt nur Okt–Feb (§39 BNatSchG, Schutz von Brutvögeln).",
+    "Staude": "Spitzenschnitt im weichen, diesjährigen Holz ist ganzjährig möglich – nie ins alte, verholzte Holz schneiden. Radikaler Rückschnitt nur im Frühjahr (Feb/März).",
+    "Kraut": "Spitzenschnitt im weichen, diesjährigen Holz ist ganzjährig möglich – nie ins alte, verholzte Holz schneiden. Radikaler Rückschnitt nur im Frühjahr (Feb/März).",
+    "Bambus": "Kahle oder braune Halme am besten im zeitigen Frühjahr vor dem Austrieb bodennah entfernen. Rhizomsperre regelmäßig kontrollieren.",
+    "Gras": "Vertrocknete Halme im Spätwinter (Feb/März) vor dem Neuaustrieb bodennah zurückschneiden.",
+    "Bodendecker": "Verträgt Rückschnitt ganzjährig gut; Auslichten oder Formschnitt am besten im Frühjahr.",
+    "Naschbeet": "Rückschnitt je nach Art unterschiedlich (Beerensträucher meist nach der Ernte oder im Winterhalbjahr) – siehe pflanzenspezifische Hinweise.",
+  };
 
   function icon(name) { return `<i data-lucide="${name}"></i>`; }
 
@@ -251,6 +266,11 @@
     return `<div class="pflege-text">${zeilen.join("<br>")}</div>`;
   }
 
+  function kategorieHinweisHtml(p) {
+    const hints = [...new Set(p.Kategorie.filter(k => CATEGORY_CARE_HINTS[k]).map(k => CATEGORY_CARE_HINTS[k]))];
+    return hints.map(h => `<div class="kategorie-hinweis">${icon("info")}<span>${h}</span></div>`).join("");
+  }
+
   function renderPflanzen() {
     const basis = pflanzen.filter(p => p.Status === statusFilter);
     let liste = aktiveKategorie ? basis.filter(p => p.Kategorie.includes(aktiveKategorie)) : basis;
@@ -280,6 +300,7 @@
         <div class="chips">${p.Kategorie.map(k => `<span class="chip">${k}</span>`).join("")}</div>
         ${badgeRowHtml(p)}
         ${pflegeBlock(p)}
+        ${kategorieHinweisHtml(p)}
       </div>
     `).join("");
     grid.querySelectorAll(".bild-img").forEach(img => {
