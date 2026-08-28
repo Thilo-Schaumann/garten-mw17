@@ -61,6 +61,9 @@
   .monat-kachel li { font-size: 11px; line-height: 1.5; color: var(--heckeSoft); display: flex; gap: 4px; }
   .monat-kachel.active li { color: var(--hecke); }
   .monat-kachel li .punkt { color: var(--moos); }
+  .monat-kachel li.robo-zeile { color: var(--taube); align-items: center; }
+  .monat-kachel li.robo-zeile svg { width: 11px; height: 11px; flex-shrink: 0; }
+  .monat-kachel.active li.robo-zeile { color: var(--heckeSoft); }
 
   hr.trenner { border: none; border-top: 1px solid var(--linie); margin: 1.5rem 0; }
 
@@ -227,6 +230,29 @@
   }
   renderWartung();
 
+  // ---------- Technik (Automower u.a.) – zur Laufzeit geladen ----------
+  let technikRows = [];
+  const MONAT_INDEX_DE = {
+    jan: 0, januar: 0, feb: 1, februar: 1, "mär": 2, maerz: 2, "märz": 2, mar: 2,
+    apr: 3, april: 3, mai: 4, jun: 5, juni: 5, jul: 6, juli: 6, aug: 7, august: 7,
+    sep: 8, september: 8, okt: 9, oktober: 9, nov: 10, november: 10, dez: 11, dezember: 11,
+  };
+  function monatToIndex(token) {
+    const key = token.trim().toLowerCase();
+    return key in MONAT_INDEX_DE ? MONAT_INDEX_DE[key] : MONAT_INDEX_DE[key.slice(0, 3)];
+  }
+  function monatInRange(idx, monatStr) {
+    const teile = monatStr.split("-").map(s => s.trim());
+    const start = monatToIndex(teile[0]);
+    const ende = teile.length > 1 ? monatToIndex(teile[1]) : start;
+    if (start === undefined || ende === undefined) return false;
+    return start <= ende ? (idx >= start && idx <= ende) : (idx >= start || idx <= ende);
+  }
+  function technikLabelFuerMonat(idx) {
+    const treffer = technikRows.find(r => monatInRange(idx, r.Monat));
+    return treffer ? `${treffer.Geraet}: ${treffer.Phase}` : null;
+  }
+
   // ---------- Generischer Pflegehinweis pro Kategorie ----------
   const CATEGORY_CARE_HINTS = {
     "Baum": "Form- und Pflegeschnitte sind ganzjährig möglich, radikaler Rückschnitt oder Fällung nur Okt–Feb (§39 BNatSchG).",
@@ -252,13 +278,13 @@
     ["Baumschnitt", "Frostschutz", "Planung"],
     ["Rückschnitt", "Baumschnitt", "Frostschutz"],
     ["Rückschnitt", "Mulchen", "Düngen"],
-    ["Pflanzung", "Düngen", "Unkraut jäten", "Mähroboter rausstellen"],
+    ["Pflanzung", "Düngen", "Unkraut jäten"],
     ["Spitzenschnitt", "Mulchen nachlegen", "Pflegeschnitt"],
     ["Formschnitt", "Pflegeschnitt", "Ernte"],
     ["Pflegeschnitt", "Ernte", "Spitzenschnitt"],
     ["Rückschnitt n. Blüte", "Formschnitt", "Ernte"],
-    ["Aufräumschnitt", "Pflanzung", "Nachmulchen", "Mähroboter reduziert"],
-    ["Laubarbeiten", "Pflanzung", "Frostschutz vorb.", "Mähroboter einwintern"],
+    ["Aufräumschnitt", "Pflanzung", "Nachmulchen"],
+    ["Laubarbeiten", "Pflanzung", "Frostschutz vorb."],
     ["Frostschutz", "Winterschutz", "Baumschnitt"],
     ["Ruhephase", "Frostschutz", "Planung"],
   ];
@@ -290,9 +316,14 @@
   let selectedMonth = new Date().getMonth();
   let selectedCats = [];
 
-  fetch('pflanzen.json')
-    .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-    .then(data => { init(data); })
+  Promise.all([
+    fetch('pflanzen.json').then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }),
+    fetch('technik.json').then(r => r.ok ? r.json() : []).catch(() => []),
+  ])
+    .then(([pflanzenData, technikData]) => {
+      technikRows = technikData;
+      init(pflanzenData);
+    })
     .catch(err => {
       document.getElementById("aufgaben-grid").innerHTML =
         `<p class="leer-hinweis">Pflanzendaten konnten nicht geladen werden (${err.message}). Diese Seite braucht einen Webserver (funktioniert nicht per Doppelklick).</p>`;
@@ -349,13 +380,16 @@
     el.innerHTML = MONTHS.map((m, idx) => {
       const active = selectedMonth === idx;
       const words = MONTH_KEYWORDS[idx];
+      const roboLabel = technikLabelFuerMonat(idx);
+      const roboZeile = roboLabel ? `<li class="robo-zeile"><i data-lucide="bot"></i>${roboLabel}</li>` : "";
       return `
         <div class="monat-kachel${active ? " active" : ""}" data-idx="${idx}">
           <p class="m-name">${m}</p>
-          <ul>${words.map(w => `<li><span class="punkt">•</span>${w}</li>`).join("")}</ul>
+          <ul>${words.map(w => `<li><span class="punkt">•</span>${w}</li>`).join("")}${roboZeile}</ul>
         </div>`;
     }).join("");
     el.querySelectorAll(".monat-kachel").forEach(k => k.addEventListener("click", () => toggleMonth(Number(k.dataset.idx))));
+    lucide.createIcons();
   }
 
   function renderKategorieFilter() {

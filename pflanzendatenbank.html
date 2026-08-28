@@ -77,10 +77,13 @@
   .technik-karte .kopf svg { width: 16px; height: 16px; color: var(--taube); }
   .technik-karte h4 { font-family: 'Fraunces', serif; font-size: 15px; color: var(--hecke); margin: 0; font-weight: 500; }
   .technik-tabelle { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
-  .technik-phase { font-size: 10.5px; line-height: 1.4; background: var(--stein); border-radius: 6px; padding: 6px 8px; }
+  .technik-phase { font-size: 10.5px; line-height: 1.4; background: var(--stein); border-radius: 6px; padding: 6px 8px; border: 2px solid transparent; }
   .technik-phase .monat { font-family: 'IBM Plex Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--moos); display: block; margin-bottom: 2px; }
   .technik-phase .phase-name { font-weight: 600; color: var(--heckeSoft); }
   .technik-phase .details { color: var(--taube); display: block; margin-top: 2px; }
+  .technik-phase.aktuell { background: var(--karte); border-color: var(--pastellgruen); }
+  .technik-phase.aktuell .monat { color: var(--hecke); font-weight: 700; }
+  .technik-phase.aktuell .phase-name { color: var(--hecke); }
 
   .bild-platzhalter { width: 100%; aspect-ratio: 4/3; background: var(--stein); border-radius: 6px; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; color: var(--taube); }
   .bild-platzhalter svg { width: 18px; height: 18px; opacity: 0.5; }
@@ -163,6 +166,24 @@
 
   function icon(name) { return `<i data-lucide="${name}"></i>`; }
 
+  const MONAT_INDEX_DE = {
+    jan: 0, januar: 0, feb: 1, februar: 1, "mär": 2, maerz: 2, "märz": 2, mar: 2,
+    apr: 3, april: 3, mai: 4, jun: 5, juni: 5, jul: 6, juli: 6, aug: 7, august: 7,
+    sep: 8, september: 8, okt: 9, oktober: 9, nov: 10, november: 10, dez: 11, dezember: 11,
+  };
+  function monatToIndex(token) {
+    const key = token.trim().toLowerCase();
+    return key in MONAT_INDEX_DE ? MONAT_INDEX_DE[key] : MONAT_INDEX_DE[key.slice(0, 3)];
+  }
+  function istAktuellePhase(monatStr) {
+    const heute = new Date().getMonth();
+    const teile = monatStr.split("-").map(s => s.trim());
+    if (teile.length === 1) return monatToIndex(teile[0]) === heute;
+    const start = monatToIndex(teile[0]), ende = monatToIndex(teile[1]);
+    if (start === undefined || ende === undefined) return false;
+    return start <= ende ? (heute >= start && heute <= ende) : (heute >= start || heute <= ende);
+  }
+
   function renderTechnik(rows) {
     const el = document.getElementById("technik-grid");
     const geraete = [...new Set(rows.map(r => r.Geraet))];
@@ -171,7 +192,7 @@
         <div class="kopf">${icon("bot")}<h4>${g}</h4></div>
         <div class="technik-tabelle">
           ${rows.filter(r => r.Geraet === g).map(r => `
-            <div class="technik-phase">
+            <div class="technik-phase${istAktuellePhase(r.Monat) ? " aktuell" : ""}">
               <span class="monat">${r.Monat}</span>
               <span class="phase-name">${r.Phase}</span>
               <span class="details">${r.Laufzeit_Std} Std · ${r.Tage_Woche}x/Woche</span>
