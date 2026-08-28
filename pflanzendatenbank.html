@@ -71,6 +71,17 @@
   .kategorie-hinweis { font-size: 10px; line-height: 1.4; color: var(--moos); font-style: italic; margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--linie); display: flex; gap: 5px; align-items: flex-start; }
   .kategorie-hinweis svg { width: 12px; height: 12px; flex-shrink: 0; margin-top: 1px; }
 
+  .technik-grid { margin-bottom: 1rem; display: flex; flex-direction: column; gap: 8px; }
+  .technik-karte { background: var(--karte); border: 1px solid var(--linie); border-left: 3px solid var(--taube); border-radius: 10px; padding: 0.75rem 1rem; }
+  .technik-karte .kopf { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .technik-karte .kopf svg { width: 16px; height: 16px; color: var(--taube); }
+  .technik-karte h4 { font-family: 'Fraunces', serif; font-size: 15px; color: var(--hecke); margin: 0; font-weight: 500; }
+  .technik-tabelle { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
+  .technik-phase { font-size: 10.5px; line-height: 1.4; background: var(--stein); border-radius: 6px; padding: 6px 8px; }
+  .technik-phase .monat { font-family: 'IBM Plex Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--moos); display: block; margin-bottom: 2px; }
+  .technik-phase .phase-name { font-weight: 600; color: var(--heckeSoft); }
+  .technik-phase .details { color: var(--taube); display: block; margin-top: 2px; }
+
   .bild-platzhalter { width: 100%; aspect-ratio: 4/3; background: var(--stein); border-radius: 6px; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; color: var(--taube); }
   .bild-platzhalter svg { width: 18px; height: 18px; opacity: 0.5; }
   .leer-hinweis { font-size: 13px; color: var(--taube); font-style: italic; }
@@ -109,6 +120,7 @@
   <div class="filter-row" id="status-filter-row"></div>
   <div class="filter-row" id="filter-row"></div>
   <div class="filter-row badges-row" id="badges-filter-row"></div>
+  <div class="technik-grid" id="technik-grid"></div>
   <p class="count" id="count"></p>
   <div class="pflanzen-grid" id="pflanzen-grid"><p class="leer-hinweis">Lade Pflanzendaten …</p></div>
 </div>
@@ -150,6 +162,32 @@
   };
 
   function icon(name) { return `<i data-lucide="${name}"></i>`; }
+
+  function renderTechnik(rows) {
+    const el = document.getElementById("technik-grid");
+    const geraete = [...new Set(rows.map(r => r.Geraet))];
+    el.innerHTML = geraete.map(g => `
+      <div class="technik-karte">
+        <div class="kopf">${icon("bot")}<h4>${g}</h4></div>
+        <div class="technik-tabelle">
+          ${rows.filter(r => r.Geraet === g).map(r => `
+            <div class="technik-phase">
+              <span class="monat">${r.Monat}</span>
+              <span class="phase-name">${r.Phase}</span>
+              <span class="details">${r.Laufzeit_Std} Std · ${r.Tage_Woche}x/Woche</span>
+              <span class="details">${r.Hinweis}</span>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `).join("");
+    lucide.createIcons();
+  }
+
+  fetch('technik.json')
+    .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(renderTechnik)
+    .catch(() => { /* Technik-Karte optional, kein Blocker */ });
 
   fetch('pflanzen.json')
     .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
